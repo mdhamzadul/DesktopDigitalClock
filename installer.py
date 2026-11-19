@@ -270,6 +270,8 @@ class SetupWizard(tk.Tk):
             
             # Stop running instance silently if any
             run_silent(["taskkill", "/f", "/im", PAYLOAD_NAME])
+            import time
+            time.sleep(0.5)
             
             shutil.copy2(src_exe, dest_exe)
 

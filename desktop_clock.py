@@ -5,30 +5,57 @@ import os
 import sys
 import json
 import threading
+import ctypes
 from PIL import Image
 import pystray
+
+# Windows API constants for hiding from taskbar
+GWL_EXSTYLE = -20
+WS_EX_TOOLWINDOW = 0x00000080
+WS_EX_APPWINDOW = 0x00040000
+ERROR_ALREADY_EXISTS = 183
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
+def remove_from_taskbar(window):
+    """Guarantees the window will never appear on the Windows Taskbar."""
+    try:
+        window.update_idletasks()
+        user32 = ctypes.windll.user32
+        try:
+            hwnd = int(window.wm_frame(), 16)
+        except Exception:
+            hwnd = user32.GetParent(window.winfo_id())
+            if not hwnd:
+                hwnd = window.winfo_id()
+                
+        style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+        
+        # Notify Windows Shell to update taskbar state immediately
+        SWP_NOSIZE = 0x0001
+        SWP_NOMOVE = 0x0002
+        SWP_NOZORDER = 0x0004
+        SWP_FRAMECHANGED = 0x0020
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED)
+    except Exception:
+        pass
+
 class DesktopDigitalClock:
     def __init__(self, master):
-        self.master = master  # Hidden base Tk window (prevents taskbar icon)
+        self.master = master  # Hidden base Tk window
         
         # Window attributes: frameless, floating toplevel, always on top
         self.root = tk.Toplevel(self.master)
         self.root.title("Desktop Digital Clock")
         self.root.overrideredirect(True)
         
-        # Set application icon if available
+        # System Tray icon path
         self.ico_path = resource_path("clock.ico")
-        if os.path.exists(self.ico_path):
-            try:
-                self.root.iconbitmap(self.ico_path)
-            except Exception:
-                pass
         
         # Base dimensions and typography
         self.base_time_size = 44
@@ -166,6 +193,9 @@ class DesktopDigitalClock:
         self.apply_position()
         self.update_time()
 
+        # Remove window from Windows Taskbar completely
+        remove_from_taskbar(self.root)
+
         # Start System Tray Icon
         self.tray_icon = None
         self.start_system_tray()
@@ -208,6 +238,7 @@ class DesktopDigitalClock:
     def show_clock(self):
         self.root.deiconify()
         self.root.attributes("-topmost", self.always_on_top)
+        remove_from_taskbar(self.root)
         self.is_visible = True
 
     def hide_clock(self):
@@ -216,7 +247,10 @@ class DesktopDigitalClock:
 
     def exit_from_tray(self, icon=None, item=None):
         if self.tray_icon:
-            self.tray_icon.stop()
+            try:
+                self.tray_icon.stop()
+            except Exception:
+                pass
         self.master.after(0, self.master.destroy)
 
     def exit_app(self):
@@ -301,7 +335,6 @@ class DesktopDigitalClock:
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
         
-        # Check if saved pos is valid
         if hasattr(self, 'saved_x') and hasattr(self, 'saved_y'):
             x = self.saved_x
             y = self.saved_y
@@ -376,7 +409,7 @@ class DesktopDigitalClock:
         self.save_config()
 
     def pick_color(self):
-        color = colorchooser.askcolor(color=self.text_color, title="Choose Clock Color")[1]
+        color = colorchooser.askcolor(parent=self.root, color=self.text_color, title="Choose Clock Color")[1]
         if color:
             self.text_color = color
             self.time_label.config(fg=self.text_color)
@@ -434,11 +467,8 @@ class DesktopDigitalClock:
         about_win.resizable(False, False)
         about_win.configure(bg="#1E1E2E")
         about_win.attributes("-topmost", True)
-        if os.path.exists(self.ico_path):
-            try:
-                about_win.iconbitmap(self.ico_path)
-            except Exception:
-                pass
+        about_win.transient(self.root)
+        remove_from_taskbar(about_win)
         
         x = self.root.winfo_x() + 20
         y = self.root.winfo_y() + 20
@@ -533,7 +563,13 @@ class DesktopDigitalClock:
         self.root.after(200, self.update_time)
 
 if __name__ == "__main__":
+    # Prevent multiple instances using a Windows named mutex
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "DesktopDigitalClock_AsR_SingleInstance_Mutex")
+    if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+        # An instance is already running! Exit silently so duplicate clocks don't appear.
+        sys.exit(0)
+
     base_root = tk.Tk()
-    base_root.withdraw()  # Keeps app off Windows Taskbar!
+    base_root.withdraw()  # Hidden master window
     app = DesktopDigitalClock(base_root)
     base_root.mainloop()
