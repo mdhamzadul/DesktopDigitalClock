@@ -93,7 +93,6 @@ class DesktopDigitalClock:
             widget.bind("<B1-Motion>", self.do_move)
             widget.bind("<ButtonRelease-1>", self.end_move)
             widget.bind("<Button-3>", self.show_context_menu)
-            widget.bind("<MouseWheel>", self.on_mousewheel)
 
         # Mouse Resize Bindings on Grip
         self.grip.bind("<ButtonPress-1>", self.start_resize)
@@ -101,7 +100,6 @@ class DesktopDigitalClock:
         self.grip.bind("<ButtonRelease-1>", self.end_resize)
         self.grip.bind("<Enter>", lambda e: self.grip.config(fg=self.text_color))
         self.grip.bind("<Leave>", lambda e: self.grip.config(fg="#454D5A"))
-        self.grip.bind("<MouseWheel>", self.on_mousewheel)
 
         # Global Keyboard Shortcuts
         self.root.bind("<Control-plus>", lambda e: self.change_scale(0.1))
@@ -114,8 +112,8 @@ class DesktopDigitalClock:
         
         # Size submenu
         self.size_menu = Menu(self.menu, tearoff=0)
-        self.size_menu.add_command(label="Make Bigger (Ctrl + / Scroll Up)", command=lambda: self.change_scale(0.1))
-        self.size_menu.add_command(label="Make Smaller (Ctrl - / Scroll Down)", command=lambda: self.change_scale(-0.1))
+        self.size_menu.add_command(label="Make Bigger (Ctrl +)", command=lambda: self.change_scale(0.1))
+        self.size_menu.add_command(label="Make Smaller (Ctrl -)", command=lambda: self.change_scale(-0.1))
         self.size_menu.add_separator()
         self.size_menu.add_command(label="Mini (60%)", command=lambda: self.set_scale(0.6))
         self.size_menu.add_command(label="Small (80%)", command=lambda: self.set_scale(0.8))
@@ -184,10 +182,6 @@ class DesktopDigitalClock:
 
     def end_resize(self, event):
         self.save_config()
-
-    def on_mousewheel(self, event):
-        step = 0.06 if event.delta > 0 else -0.06
-        self.change_scale(step)
 
     def change_scale(self, delta):
         self.set_scale(self.scale + delta)
@@ -304,7 +298,7 @@ class DesktopDigitalClock:
 
         tips_lbl = tk.Label(
             about_win, 
-            text="💡 Tip: Drag bottom-right corner (⤡) or\nscroll Mouse Wheel to resize bigger/smaller.", 
+            text="💡 Tip: Drag bottom-right corner (⤡) to resize bigger or smaller.", 
             font=("Segoe UI", 9, "italic"), 
             fg="#FFE066", 
             bg="#1E1E2E",
