@@ -2,12 +2,26 @@ import tkinter as tk
 from tkinter import Menu, colorchooser
 import time
 import os
+import sys
 import json
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class DesktopDigitalClock:
     def __init__(self, root):
         self.root = root
         self.root.title("Desktop Digital Clock")
+        
+        # Set application icon if available
+        ico = resource_path("clock.ico")
+        if os.path.exists(ico):
+            try:
+                self.root.iconbitmap(ico)
+            except Exception:
+                pass
         
         # Window attributes: frameless, transparent background, always on top
         self.root.overrideredirect(True)
@@ -264,6 +278,12 @@ class DesktopDigitalClock:
         about_win.resizable(False, False)
         about_win.configure(bg="#1E1E2E")
         about_win.attributes("-topmost", True)
+        ico = resource_path("clock.ico")
+        if os.path.exists(ico):
+            try:
+                about_win.iconbitmap(ico)
+            except Exception:
+                pass
         
         x = self.root.winfo_x() + 20
         y = self.root.winfo_y() + 20

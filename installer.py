@@ -39,6 +39,13 @@ class SetupWizard(tk.Tk):
         self.geometry("540x390")
         self.resizable(False, False)
         
+        ico = resource_path("clock.ico")
+        if os.path.exists(ico):
+            try:
+                self.iconbitmap(ico)
+            except Exception:
+                pass
+        
         # Default Install Path: %LOCALAPPDATA%\Programs\DesktopDigitalClock_AsR
         local_app = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
         self.dest_dir = tk.StringVar(value=os.path.join(local_app, "Programs", "DesktopDigitalClock_AsR"))
