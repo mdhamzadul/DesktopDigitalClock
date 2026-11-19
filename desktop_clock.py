@@ -39,7 +39,8 @@ class DesktopDigitalClock:
         self.text_color = "#00FFCC"   # Neon Cyan
         self.is_24hr = False
         self.always_on_top = True
-        self.bg_mode = "card"         # "card", "transparent_light", "transparent_dark"
+        self.bg_mode = "transparent_dark"  # Default frameless transparent for dark screen
+        self.short_date = True             # Short date format: 'Thu, 19 Nov 2026'
         
         # Load user configuration if previously saved
         self.config_dir = os.path.join(
@@ -51,13 +52,13 @@ class DesktopDigitalClock:
 
         self.root.attributes("-topmost", self.always_on_top)
 
-        # Container Frame (acting as card or container)
+        # Container Frame
         self.frame = tk.Frame(
             self.root, 
             padx=int(self.base_pad_x * self.scale), 
             pady=int(self.base_pad_y * self.scale)
         )
-        self.frame.pack(padx=3, pady=3)
+        self.frame.pack(padx=2, pady=2)
 
         # Time Label
         self.time_label = tk.Label(
@@ -76,14 +77,13 @@ class DesktopDigitalClock:
         )
         self.date_label.pack(pady=(0, 2))
 
-        # Resize grip handle at bottom-right corner (⤡)
+        # Resize grip handle at bottom-right corner (⤡) - Hidden by default, shows on hover
         self.grip = tk.Label(
             self.frame,
             text="⤡",
             font=("Segoe UI", max(8, int(10 * self.scale))),
             cursor="size_nw_se"
         )
-        self.grip.place(relx=1.0, rely=1.0, anchor="se", x=-2, y=-2)
 
         # Apply Background Style & Transparency
         self.apply_bg_mode(self.bg_mode, save=False)
@@ -96,6 +96,11 @@ class DesktopDigitalClock:
             widget.bind("<B1-Motion>", self.do_move)
             widget.bind("<ButtonRelease-1>", self.end_move)
             widget.bind("<Button-3>", self.show_context_menu)
+
+        # Hover-only visibility for Resize Grip (shows only when mouse is over clock)
+        for w in (self.root, self.frame, self.time_label, self.date_label):
+            w.bind("<Enter>", self.show_grip, add="+")
+            w.bind("<Leave>", self.hide_grip, add="+")
 
         # Mouse Resize Bindings on Grip
         self.grip.bind("<ButtonPress-1>", self.start_resize)
@@ -116,16 +121,16 @@ class DesktopDigitalClock:
         # Background Style submenu
         self.bg_menu = Menu(self.menu, tearoff=0)
         self.bg_menu.add_command(
-            label="Sleek Widget Card (Clean on All Screens)", 
-            command=lambda: self.apply_bg_mode("card")
+            label="Pure Transparent (For Dark Desktop / Screen)", 
+            command=lambda: self.apply_bg_mode("transparent_dark")
         )
         self.bg_menu.add_command(
             label="Pure Transparent (For White / Light Screens)", 
             command=lambda: self.apply_bg_mode("transparent_light")
         )
         self.bg_menu.add_command(
-            label="Pure Transparent (For Dark Screens)", 
-            command=lambda: self.apply_bg_mode("transparent_dark")
+            label="Sleek Widget Card (Clean on All Screens)", 
+            command=lambda: self.apply_bg_mode("card")
         )
         self.menu.add_cascade(label="Background Style", menu=self.bg_menu)
 
@@ -143,6 +148,7 @@ class DesktopDigitalClock:
         self.size_menu.add_command(label="Reset to Default Size", command=lambda: self.set_scale(1.0))
         
         self.menu.add_cascade(label="Resize Clock", menu=self.size_menu)
+        self.menu.add_command(label="Toggle Date Format (Short / Full)", command=self.toggle_date_format)
         self.menu.add_command(label="Change Clock Color", command=self.pick_color)
         self.menu.add_command(label="Toggle 12h / 24h", command=self.toggle_format)
         self.menu.add_command(label="Toggle Always on Top", command=self.toggle_topmost)
@@ -153,6 +159,21 @@ class DesktopDigitalClock:
         # Initial positioning
         self.apply_position()
         self.update_time()
+
+    # --- Hover-only Grip Logic ---
+    def show_grip(self, event=None):
+        self.grip.place(relx=1.0, rely=1.0, anchor="se", x=-2, y=-2)
+        self.grip.lift()
+
+    def hide_grip(self, event=None):
+        try:
+            x, y = self.root.winfo_pointerxy()
+            rx, ry = self.root.winfo_rootx(), self.root.winfo_rooty()
+            rw, rh = self.root.winfo_width(), self.root.winfo_height()
+            if not (rx <= x <= rx + rw and ry <= y <= ry + rh):
+                self.grip.place_forget()
+        except Exception:
+            self.grip.place_forget()
 
     # --- Background Styles & Clean Antialiasing ---
     def apply_bg_mode(self, mode, save=True):
@@ -168,7 +189,7 @@ class DesktopDigitalClock:
                 pass
             self.frame.configure(bg=card_bg, highlightthickness=1, highlightbackground="#2A2F40")
             self.time_label.configure(bg=card_bg)
-            self.date_label.configure(bg=card_bg, fg="#AAAAAA")
+            self.date_label.configure(bg=card_bg, fg="#D8DCE5")
             self.grip.configure(bg=card_bg, fg="#4E5569")
         elif mode == "transparent_light":
             bg = "#FFFFFF"
@@ -180,9 +201,10 @@ class DesktopDigitalClock:
                 pass
             self.frame.configure(bg=bg, highlightthickness=0)
             self.time_label.configure(bg=bg)
-            self.date_label.configure(bg=bg, fg="#333333")
+            self.date_label.configure(bg=bg, fg="#22252C")
             self.grip.configure(bg=bg, fg="#999999")
-        elif mode == "transparent_dark":
+        else: # transparent_dark (default)
+            self.bg_mode = "transparent_dark"
             bg = "#101216"
             self.root.configure(bg=bg)
             try:
@@ -192,7 +214,7 @@ class DesktopDigitalClock:
                 pass
             self.frame.configure(bg=bg, highlightthickness=0)
             self.time_label.configure(bg=bg)
-            self.date_label.configure(bg=bg, fg="#AAAAAA")
+            self.date_label.configure(bg=bg, fg="#D8DCE5")
             self.grip.configure(bg=bg, fg="#454D5A")
 
         self.root.update_idletasks()
@@ -217,11 +239,11 @@ class DesktopDigitalClock:
             x = self.saved_x
             y = self.saved_y
             if x < -50 or x > screen_w - 50:
-                x = screen_w - 400
+                x = screen_w - 380
             if y < 0 or y > screen_h - 50:
                 y = 60
         else:
-            x = screen_w - 400
+            x = screen_w - 380
             y = 60
             
         self.root.geometry(f"+{int(x)}+{int(y)}")
@@ -281,6 +303,11 @@ class DesktopDigitalClock:
     def show_context_menu(self, event):
         self.menu.post(event.x_root, event.y_root)
 
+    def toggle_date_format(self):
+        self.short_date = not self.short_date
+        self.update_time()
+        self.save_config()
+
     def pick_color(self):
         color = colorchooser.askcolor(color=self.text_color, title="Choose Clock Color")[1]
         if color:
@@ -308,7 +335,8 @@ class DesktopDigitalClock:
                     self.text_color = data.get("text_color", "#00FFCC")
                     self.is_24hr = data.get("is_24hr", False)
                     self.always_on_top = data.get("always_on_top", True)
-                    self.bg_mode = data.get("bg_mode", "card")
+                    self.bg_mode = data.get("bg_mode", "transparent_dark")
+                    self.short_date = data.get("short_date", True)
                     self.saved_x = data.get("x")
                     self.saved_y = data.get("y")
         except Exception:
@@ -323,6 +351,7 @@ class DesktopDigitalClock:
                 "is_24hr": self.is_24hr,
                 "always_on_top": self.always_on_top,
                 "bg_mode": self.bg_mode,
+                "short_date": self.short_date,
                 "x": self.root.winfo_x(),
                 "y": self.root.winfo_y()
             }
@@ -378,7 +407,7 @@ class DesktopDigitalClock:
 
         tips_lbl = tk.Label(
             about_win, 
-            text="💡 Tip: Drag bottom-right corner (⤡) to resize bigger or smaller.\nRight-click for Background Style and Color options.", 
+            text="💡 Tip: Hover mouse over clock to see resize handle (⤡).\nRight-click for Color, Size, and Background Style.", 
             font=("Segoe UI", 9, "italic"), 
             fg="#FFE066", 
             bg="#1E1E2E",
@@ -424,7 +453,11 @@ class DesktopDigitalClock:
             t_str = time.strftime("%H:%M:%S", now)
         else:
             t_str = time.strftime("%I:%M:%S %p", now)
-        d_str = time.strftime("%A, %d %B %Y", now)
+            
+        if self.short_date:
+            d_str = time.strftime("%a, %d %b %Y", now)
+        else:
+            d_str = time.strftime("%A, %d %B %Y", now)
 
         self.time_label.config(text=t_str)
         self.date_label.config(text=d_str)
