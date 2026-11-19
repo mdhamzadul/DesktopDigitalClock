@@ -54,11 +54,11 @@
 
 সরাসরি ব্যবহারের জন্য পাইথন বা কোনো জটিল সেটআপের প্রয়োজন নেই:
 
-| ফাইল | ধরন | বর্ণনা |
+| ফাইল | ধরন | ডাউনলোড |
 | :--- | :--- | :--- |
-| **`Setup_DesktopDigitalClock_AsR.exe`** | 📦 **ফুল ইনস্টলার** *(Official)* | ফুল সাইডবার উইজার্ড ইনস্টলার। অটো-স্টার্ট, ডেস্কটপ শর্টকাট এবং আনইনস্টল সুবিধা সংবলিত। |
+| **`Setup_DesktopDigitalClock_AsR.exe`** | 📦 **ফুল উইন্ডোজ ইনস্টলার** | [Direct Download (v1.2.0)](https://github.com/mdhamzadul/DesktopDigitalClock/releases/latest/download/Setup_DesktopDigitalClock_AsR.exe) |
 
-👉 **ডাউনলোড করতে ডানপাশের [Releases](../../releases) সেকশনে যান এবং সর্বশেষ ভার্সনটি নামিয়ে নিন।**
+👉 **অথবা [Releases](https://github.com/mdhamzadul/DesktopDigitalClock/releases) পেজ থেকেও সরাসরি নামিয়ে নিতে পারবেন।**
 
 ---
 
@@ -70,19 +70,8 @@
 | **সাইজ বড়/ছোট করা (Resize)** | ঘড়ির ওপর মাউস আনলে কোণায় `⤡` আসবে, সেটি চেপে ধরে ড্র্যাগ করুন। অথবা `Ctrl +` ও `Ctrl -` চাপুন। |
 | **ডিফল্ট সাইজ (Reset Size)** | `Ctrl + 0` চাপুন অথবা রাইট-ক্লিক মেনু থেকে নির্বাচন করুন। |
 | **মেনু ওপেন করা (Menu)** | ঘড়ির ওপর মাউসের **ডান বাটন (Right Click)** ক্লিক করুন। |
+| **সিস্টেম ট্রে (System Tray)** | টাস্কবারের ট্রে বক্সে ঘড়ির আইকনে রাইট-ক্লিক করে Show/Hide, Color বা Exit করতে পারেন। |
 | **ঘড়ি বন্ধ করা (Exit)** | রাইট-ক্লিক করে **Exit Clock** সিলেক্ট করুন। |
-
----
-
-## 💡 Portable বনাম Installer এর পার্থক্য
-
-- **Installer (`Setup...exe`) কেন ব্যবহার করবেন?**
-  আপনি যদি চান ঘড়িটি স্থায়ীভাবে ইনস্টল থাকুক, ডেস্কটপে আইকন থাকুক এবং কম্পিউটার চালু হওয়ার সাথে সাথেই ঘড়িটি স্বয়ংক্রিয়ভাবে ওপেন হয়ে যাক—তবে ইনস্টলারটি বেস্ট।
-- **Portable (`Desktop...exe`) কীভাবে সবসময় চালাবেন?**
-  পোর্টেবল ফাইলটিকে কম্পিউটার অন হওয়ার সাথে সাথে সবসময় চালাতে চাইলে:
-  1. `DesktopDigitalClock_AsR.exe` ফাইলের ওপর রাইট-ক্লিক করে **Create shortcut** করুন।
-  2. কীবোর্ডে `Windows Key + R` চাপুন, বক্সে লিখুন: `shell:startup` এবং Enter চাপুন।
-  3. তৈরি করা শর্টকাট ফাইলটি ওই ফোল্ডারে পেস্ট করে দিন। এখন থেকে কম্পিউটার চালু হলেই পোর্টেবল ঘড়িটিও নিজে নিজে ওপেন হবে।
 
 ---
 
@@ -92,10 +81,13 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/DesktopDigitalClock.git
+git clone https://github.com/mdhamzadul/DesktopDigitalClock.git
 
 # Enter project directory
 cd DesktopDigitalClock
+
+# Install requirements
+pip install -r requirements.txt  # (or pip install pystray pillow)
 
 # Run the clock directly
 python desktop_clock.py
