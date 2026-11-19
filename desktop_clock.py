@@ -70,8 +70,7 @@ class DesktopDigitalClock:
         self.text_color = "#00FFCC"   # Neon Cyan
         self.is_24hr = False
         self.always_on_top = True
-        self.bg_mode = "transparent_dark"  # Default frameless transparent for dark screen
-        self.short_date = True             # Short date: 'Thu, 19 Nov 2026'
+        self.bg_mode = "auto"         # Auto-detects wallpaper/screen luminance by default
         self.is_visible = True
         
         # Load user configuration if previously saved
@@ -153,6 +152,11 @@ class DesktopDigitalClock:
         # Background Style submenu
         self.bg_menu = Menu(self.menu, tearoff=0)
         self.bg_menu.add_command(
+            label="⚡ Auto Detect (Adapts to Wallpaper / Screen)", 
+            command=lambda: self.apply_bg_mode("auto")
+        )
+        self.bg_menu.add_separator()
+        self.bg_menu.add_command(
             label="Pure Transparent (For Dark Desktop / Screen)", 
             command=lambda: self.apply_bg_mode("transparent_dark")
         )
@@ -180,7 +184,6 @@ class DesktopDigitalClock:
         self.size_menu.add_command(label="Reset to Default Size", command=lambda: self.set_scale(1.0))
         
         self.menu.add_cascade(label="Resize Clock", menu=self.size_menu)
-        self.menu.add_command(label="Toggle Date Format (Short / Full)", command=self.toggle_date_format)
         self.menu.add_command(label="Change Clock Color", command=self.pick_color)
         self.menu.add_command(label="Toggle 12h / 24h", command=self.toggle_format)
         self.menu.add_command(label="Toggle Always on Top", command=self.toggle_topmost)
@@ -277,9 +280,62 @@ class DesktopDigitalClock:
             self.grip.place_forget()
 
     # --- Background Styles & Clean Antialiasing ---
+    def detect_background_is_light(self):
+        """Returns True if the desktop area under the clock is bright/white, False if dark."""
+        try:
+            import winreg
+            wp_path = None
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Control Panel\Desktop") as k:
+                    wp_path = winreg.QueryValueEx(k, "WallPaper")[0]
+            except Exception:
+                pass
+
+            if wp_path and os.path.exists(wp_path):
+                with Image.open(wp_path) as im:
+                    sw = self.root.winfo_screenwidth()
+                    sh = self.root.winfo_screenheight()
+                    if sw > 0 and sh > 0:
+                        iw, ih = im.size
+                        cx = max(0, min(sw - 10, self.root.winfo_x()))
+                        cy = max(0, min(sh - 10, self.root.winfo_y()))
+                        cw = max(20, self.root.winfo_width())
+                        ch = max(20, self.root.winfo_height())
+                        
+                        box = (
+                            int(cx / sw * iw),
+                            int(cy / sh * ih),
+                            min(iw, int((cx + cw) / sw * iw)),
+                            min(ih, int((cy + ch) / sh * ih))
+                        )
+                        if box[2] > box[0] and box[3] > box[1]:
+                            crop = im.crop(box)
+                        else:
+                            crop = im
+                        
+                        thumb = crop.resize((15, 15))
+                        pixels = list(thumb.getdata())
+                        avg_lum = sum(0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2] for p in pixels) / len(pixels)
+                        return avg_lum > 130
+        except Exception:
+            pass
+
+        # Fallback: check Windows system theme (1 = Light, 0 = Dark)
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as k:
+                val = winreg.QueryValueEx(k, "AppsUseLightTheme")[0]
+                return val == 1
+        except Exception:
+            return False
+
     def apply_bg_mode(self, mode, save=True):
         self.bg_mode = mode
-        if mode == "card":
+        effective_mode = mode
+        if mode == "auto":
+            effective_mode = "transparent_light" if self.detect_background_is_light() else "transparent_dark"
+
+        if effective_mode == "card":
             chroma = "#000001"
             card_bg = "#151722"
             self.root.configure(bg=chroma)
@@ -292,7 +348,7 @@ class DesktopDigitalClock:
             self.time_label.configure(bg=card_bg)
             self.date_label.configure(bg=card_bg, fg="#D8DCE5")
             self.grip.configure(bg=card_bg, fg="#4E5569")
-        elif mode == "transparent_light":
+        elif effective_mode == "transparent_light":
             bg = "#FFFFFF"
             self.root.configure(bg=bg)
             try:
@@ -304,8 +360,7 @@ class DesktopDigitalClock:
             self.time_label.configure(bg=bg)
             self.date_label.configure(bg=bg, fg="#22252C")
             self.grip.configure(bg=bg, fg="#999999")
-        else: # transparent_dark (default)
-            self.bg_mode = "transparent_dark"
+        else: # transparent_dark
             bg = "#101216"
             self.root.configure(bg=bg)
             try:
@@ -323,10 +378,11 @@ class DesktopDigitalClock:
             self.save_config()
 
     def update_grip_color(self):
-        if self.bg_mode == "transparent_light":
-            self.grip.config(fg="#999999")
-        elif self.bg_mode == "card":
+        is_light = (self.bg_mode == "transparent_light") or (self.bg_mode == "auto" and self.detect_background_is_light())
+        if self.bg_mode == "card":
             self.grip.config(fg="#4E5569")
+        elif is_light:
+            self.grip.config(fg="#999999")
         else:
             self.grip.config(fg="#454D5A")
 
@@ -359,6 +415,8 @@ class DesktopDigitalClock:
         self.root.geometry(f"+{x}+{y}")
 
     def end_move(self, event):
+        if self.bg_mode == "auto":
+            self.apply_bg_mode("auto", save=False)
         self.save_config()
 
     # --- Resize Functionality ---
@@ -403,11 +461,6 @@ class DesktopDigitalClock:
     def show_context_menu(self, event):
         self.menu.post(event.x_root, event.y_root)
 
-    def toggle_date_format(self):
-        self.short_date = not self.short_date
-        self.update_time()
-        self.save_config()
-
     def pick_color(self):
         color = colorchooser.askcolor(parent=self.root, color=self.text_color, title="Choose Clock Color")[1]
         if color:
@@ -435,8 +488,7 @@ class DesktopDigitalClock:
                     self.text_color = data.get("text_color", "#00FFCC")
                     self.is_24hr = data.get("is_24hr", False)
                     self.always_on_top = data.get("always_on_top", True)
-                    self.bg_mode = data.get("bg_mode", "transparent_dark")
-                    self.short_date = data.get("short_date", True)
+                    self.bg_mode = data.get("bg_mode", "auto")
                     self.saved_x = data.get("x")
                     self.saved_y = data.get("y")
         except Exception:
@@ -451,7 +503,6 @@ class DesktopDigitalClock:
                 "is_24hr": self.is_24hr,
                 "always_on_top": self.always_on_top,
                 "bg_mode": self.bg_mode,
-                "short_date": self.short_date,
                 "x": self.root.winfo_x(),
                 "y": self.root.winfo_y()
             }
@@ -552,13 +603,17 @@ class DesktopDigitalClock:
         else:
             t_str = time.strftime("%I:%M:%S %p", now)
             
-        if self.short_date:
-            d_str = time.strftime("%a, %d %b %Y", now)
-        else:
-            d_str = time.strftime("%A, %d %B %Y", now)
+        d_str = time.strftime("%a, %d %b %Y", now)
 
         self.time_label.config(text=t_str)
         self.date_label.config(text=d_str)
+
+        # Check background luminance periodically in auto mode (every ~3 seconds)
+        self._auto_bg_tick = getattr(self, '_auto_bg_tick', 0) + 1
+        if self._auto_bg_tick >= 15:
+            self._auto_bg_tick = 0
+            if self.bg_mode == "auto":
+                self.apply_bg_mode("auto", save=False)
 
         self.root.after(200, self.update_time)
 
