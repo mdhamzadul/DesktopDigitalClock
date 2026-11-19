@@ -357,7 +357,7 @@ oLink.Save
             reg_path = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\DesktopDigitalClock_AsR"
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, reg_path)
             winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, "Desktop Digital Clock")
-            winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "1.1.0")
+            winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "1.2.0")
             winreg.SetValueEx(key, "Publisher", 0, winreg.REG_SZ, "AsR")
             winreg.SetValueEx(key, "DisplayIcon", 0, winreg.REG_SZ, exe_path)
             winreg.SetValueEx(key, "InstallLocation", 0, winreg.REG_SZ, install_dir)

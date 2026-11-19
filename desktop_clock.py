@@ -4,6 +4,9 @@ import time
 import os
 import sys
 import json
+import threading
+from PIL import Image
+import pystray
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -11,20 +14,21 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 class DesktopDigitalClock:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, master):
+        self.master = master  # Hidden base Tk window (prevents taskbar icon)
+        
+        # Window attributes: frameless, floating toplevel, always on top
+        self.root = tk.Toplevel(self.master)
         self.root.title("Desktop Digital Clock")
+        self.root.overrideredirect(True)
         
         # Set application icon if available
-        ico = resource_path("clock.ico")
-        if os.path.exists(ico):
+        self.ico_path = resource_path("clock.ico")
+        if os.path.exists(self.ico_path):
             try:
-                self.root.iconbitmap(ico)
+                self.root.iconbitmap(self.ico_path)
             except Exception:
                 pass
-        
-        # Window attributes: frameless, always on top
-        self.root.overrideredirect(True)
         
         # Base dimensions and typography
         self.base_time_size = 44
@@ -40,7 +44,8 @@ class DesktopDigitalClock:
         self.is_24hr = False
         self.always_on_top = True
         self.bg_mode = "transparent_dark"  # Default frameless transparent for dark screen
-        self.short_date = True             # Short date format: 'Thu, 19 Nov 2026'
+        self.short_date = True             # Short date: 'Thu, 19 Nov 2026'
+        self.is_visible = True
         
         # Load user configuration if previously saved
         self.config_dir = os.path.join(
@@ -115,7 +120,7 @@ class DesktopDigitalClock:
         self.root.bind("<Control-minus>", lambda e: self.change_scale(-0.1))
         self.root.bind("<Control-0>", lambda e: self.set_scale(1.0))
 
-        # Right-click Context Menu
+        # Right-click Context Menu on Clock
         self.menu = Menu(self.root, tearoff=0)
         
         # Background Style submenu
@@ -153,12 +158,74 @@ class DesktopDigitalClock:
         self.menu.add_command(label="Toggle 12h / 24h", command=self.toggle_format)
         self.menu.add_command(label="Toggle Always on Top", command=self.toggle_topmost)
         self.menu.add_separator()
+        self.menu.add_command(label="Hide to System Tray", command=self.hide_clock)
         self.menu.add_command(label="About Desktop Digital Clock", command=self.show_about)
-        self.menu.add_command(label="Exit Clock", command=self.root.destroy)
+        self.menu.add_command(label="Exit Clock", command=self.exit_app)
 
         # Initial positioning
         self.apply_position()
         self.update_time()
+
+        # Start System Tray Icon
+        self.tray_icon = None
+        self.start_system_tray()
+
+    # --- System Tray Integration ---
+    def start_system_tray(self):
+        try:
+            if os.path.exists(self.ico_path):
+                img = Image.open(self.ico_path)
+            else:
+                img = Image.new("RGBA", (32, 32), (0, 255, 204, 255))
+
+            tray_menu = pystray.Menu(
+                pystray.MenuItem("Desktop Digital Clock by AsR", lambda icon, item: None, enabled=False),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Show / Hide Clock", self.toggle_visibility_from_tray, default=True),
+                pystray.MenuItem("Change Color", lambda icon, item: self.master.after(0, self.pick_color)),
+                pystray.MenuItem("Toggle 12h / 24h", lambda icon, item: self.master.after(0, self.toggle_format)),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("About", lambda icon, item: self.master.after(0, self.show_about)),
+                pystray.MenuItem("Exit Clock", self.exit_from_tray)
+            )
+
+            self.tray_icon = pystray.Icon(
+                "DesktopDigitalClock_AsR",
+                img,
+                "Desktop Digital Clock by AsR",
+                tray_menu
+            )
+            threading.Thread(target=self.tray_icon.run, daemon=True).start()
+        except Exception:
+            pass
+
+    def toggle_visibility_from_tray(self, icon=None, item=None):
+        if self.is_visible:
+            self.master.after(0, self.hide_clock)
+        else:
+            self.master.after(0, self.show_clock)
+
+    def show_clock(self):
+        self.root.deiconify()
+        self.root.attributes("-topmost", self.always_on_top)
+        self.is_visible = True
+
+    def hide_clock(self):
+        self.root.withdraw()
+        self.is_visible = False
+
+    def exit_from_tray(self, icon=None, item=None):
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.master.after(0, self.master.destroy)
+
+    def exit_app(self):
+        if self.tray_icon:
+            try:
+                self.tray_icon.stop()
+            except Exception:
+                pass
+        self.master.destroy()
 
     # --- Hover-only Grip Logic ---
     def show_grip(self, event=None):
@@ -363,14 +430,13 @@ class DesktopDigitalClock:
     def show_about(self):
         about_win = tk.Toplevel(self.root)
         about_win.title("About Desktop Digital Clock")
-        about_win.geometry("400x290")
+        about_win.geometry("400x300")
         about_win.resizable(False, False)
         about_win.configure(bg="#1E1E2E")
         about_win.attributes("-topmost", True)
-        ico = resource_path("clock.ico")
-        if os.path.exists(ico):
+        if os.path.exists(self.ico_path):
             try:
-                about_win.iconbitmap(ico)
+                about_win.iconbitmap(self.ico_path)
             except Exception:
                 pass
         
@@ -389,7 +455,7 @@ class DesktopDigitalClock:
 
         ver_lbl = tk.Label(
             about_win, 
-            text="Version 1.1.0 (x64 Release)", 
+            text="Version 1.2.0 (x64 Release)", 
             font=("Segoe UI", 10), 
             fg="#AAAAAA", 
             bg="#1E1E2E"
@@ -398,20 +464,22 @@ class DesktopDigitalClock:
 
         desc_lbl = tk.Label(
             about_win, 
-            text="A clean, floating, resizable desktop digital clock.", 
+            text="A clean, floating, resizable desktop digital clock with System Tray support.", 
             font=("Segoe UI", 10), 
             fg="#CCCCCC", 
-            bg="#1E1E2E"
+            bg="#1E1E2E",
+            wraplength=340
         )
         desc_lbl.pack(pady=(6, 4))
 
         tips_lbl = tk.Label(
             about_win, 
-            text="💡 Tip: Hover mouse over clock to see resize handle (⤡).\nRight-click for Color, Size, and Background Style.", 
+            text="💡 Tip: Check the System Tray (notification area) for clock controls.\nHover mouse over clock to see resize handle (⤡).", 
             font=("Segoe UI", 9, "italic"), 
             fg="#FFE066", 
             bg="#1E1E2E",
-            justify="center"
+            justify="center",
+            wraplength=350
         )
         tips_lbl.pack(pady=(2, 6))
 
@@ -465,6 +533,7 @@ class DesktopDigitalClock:
         self.root.after(200, self.update_time)
 
 if __name__ == "__main__":
-    app_root = tk.Tk()
-    app = DesktopDigitalClock(app_root)
-    app_root.mainloop()
+    base_root = tk.Tk()
+    base_root.withdraw()  # Keeps app off Windows Taskbar!
+    app = DesktopDigitalClock(base_root)
+    base_root.mainloop()
