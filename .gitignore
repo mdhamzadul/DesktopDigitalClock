@@ -3,10 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# PyInstaller temporary build artifacts
+# PyInstaller temporary build artifacts and executables
 build/
 dist/
 *.spec
+*.exe
 
 # User local config
 *.json
