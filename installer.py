@@ -12,6 +12,24 @@ def resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
+def run_silent(cmd, wait=True, cwd=None):
+    try:
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0  # SW_HIDE (No console window)
+        kwargs = {
+            "creationflags": subprocess.CREATE_NO_WINDOW,
+            "startupinfo": si,
+            "cwd": cwd
+        }
+        if wait:
+            kwargs["capture_output"] = True
+            return subprocess.run(cmd, **kwargs)
+        else:
+            return subprocess.Popen(cmd, **kwargs)
+    except Exception:
+        return None
+
 PAYLOAD_NAME = "DesktopDigitalClock_AsR.exe"
 
 class SetupWizard(tk.Tk):
@@ -243,8 +261,8 @@ class SetupWizard(tk.Tk):
             src_exe = resource_path(PAYLOAD_NAME)
             dest_exe = os.path.join(target_dir, PAYLOAD_NAME)
             
-            # Stop running instance if any
-            subprocess.run(["taskkill", "/f", "/im", PAYLOAD_NAME], capture_output=True, text=True)
+            # Stop running instance silently if any
+            run_silent(["taskkill", "/f", "/im", PAYLOAD_NAME])
             
             shutil.copy2(src_exe, dest_exe)
 
@@ -275,7 +293,7 @@ class SetupWizard(tk.Tk):
             self.lbl_status.config(text="Registering uninstaller in Windows...")
             self.update()
 
-            # Create uninstaller batch
+            # Create uninstaller batch & silent VBS launcher
             uninst_bat = os.path.join(target_dir, "uninstall.bat")
             with open(uninst_bat, "w", encoding="utf-8") as f:
                 f.write(f'''@echo off
@@ -287,11 +305,17 @@ del /f /q "{os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", 
 cd /d "%TEMP%"
 timeout /t 1 >nul
 rmdir /s /q "{target_dir}" >nul 2>&1
-msg * Desktop Digital Clock by AsR has been uninstalled successfully.
 ''')
 
-            # Register in Windows Add/Remove Programs
-            self.register_uninstall(target_dir, dest_exe, uninst_bat)
+            uninst_vbs = os.path.join(target_dir, "uninstall.vbs")
+            with open(uninst_vbs, "w", encoding="utf-8") as f:
+                f.write(f'''Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run chr(34) & "{uninst_bat}" & chr(34), 0, True
+MsgBox "Desktop Digital Clock by AsR has been uninstalled successfully.", 64, "Desktop Digital Clock"
+''')
+
+            # Register in Windows Add/Remove Programs (silent uninstall via wscript)
+            self.register_uninstall(target_dir, dest_exe, uninst_vbs)
 
             self.progress["value"] = 100
             self.lbl_status.config(text="Installation complete!")
@@ -315,13 +339,13 @@ oLink.Save
         vbs_path = os.path.join(os.environ.get("TEMP", "C:\\"), "create_lnk.vbs")
         with open(vbs_path, "w", encoding="utf-8") as f:
             f.write(vbs)
-        subprocess.run(["cscript", "//nologo", vbs_path], capture_output=True)
+        run_silent(["wscript", "//nologo", vbs_path])
         try:
             os.remove(vbs_path)
         except Exception:
             pass
 
-    def register_uninstall(self, install_dir, exe_path, uninst_bat):
+    def register_uninstall(self, install_dir, exe_path, uninst_vbs):
         try:
             reg_path = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\DesktopDigitalClock_AsR"
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, reg_path)
@@ -330,7 +354,7 @@ oLink.Save
             winreg.SetValueEx(key, "Publisher", 0, winreg.REG_SZ, "AsR")
             winreg.SetValueEx(key, "DisplayIcon", 0, winreg.REG_SZ, exe_path)
             winreg.SetValueEx(key, "InstallLocation", 0, winreg.REG_SZ, install_dir)
-            winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, f'cmd.exe /c "{uninst_bat}"')
+            winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, f'wscript.exe "{uninst_vbs}"')
             winreg.SetValueEx(key, "NoModify", 0, winreg.REG_DWORD, 1)
             winreg.SetValueEx(key, "NoRepair", 0, winreg.REG_DWORD, 1)
             winreg.CloseKey(key)
@@ -341,7 +365,7 @@ oLink.Save
         if self.launch_app.get():
             target_exe = os.path.join(self.dest_dir.get(), PAYLOAD_NAME)
             if os.path.exists(target_exe):
-                subprocess.Popen([target_exe], cwd=self.dest_dir.get())
+                run_silent([target_exe], wait=False, cwd=self.dest_dir.get())
         self.destroy()
 
 if __name__ == "__main__":
