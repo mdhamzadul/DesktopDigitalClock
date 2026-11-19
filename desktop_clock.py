@@ -23,24 +23,23 @@ class DesktopDigitalClock:
             except Exception:
                 pass
         
-        # Window attributes: frameless, transparent background, always on top
+        # Window attributes: frameless, always on top
         self.root.overrideredirect(True)
         
         # Base dimensions and typography
         self.base_time_size = 44
         self.base_date_size = 12
-        self.base_pad_x = 16
+        self.base_pad_x = 18
         self.base_pad_y = 8
         self.min_scale = 0.45
         self.max_scale = 2.4
         
         # Default Settings
         self.scale = 1.0
-        self.bg_color = "#101216"
         self.text_color = "#00FFCC"   # Neon Cyan
-        self.date_color = "#AAAAAA"
         self.is_24hr = False
         self.always_on_top = True
+        self.bg_mode = "card"         # "card", "transparent_light", "transparent_dark"
         
         # Load user configuration if previously saved
         self.config_dir = os.path.join(
@@ -51,29 +50,20 @@ class DesktopDigitalClock:
         self.load_config()
 
         self.root.attributes("-topmost", self.always_on_top)
-        self.root.configure(bg=self.bg_color)
-        
-        # Make the background color transparent on Windows
-        try:
-            self.root.wm_attributes("-transparentcolor", self.bg_color)
-        except Exception:
-            pass
 
-        # Container Frame
+        # Container Frame (acting as card or container)
         self.frame = tk.Frame(
             self.root, 
-            bg=self.bg_color, 
             padx=int(self.base_pad_x * self.scale), 
             pady=int(self.base_pad_y * self.scale)
         )
-        self.frame.pack()
+        self.frame.pack(padx=3, pady=3)
 
         # Time Label
         self.time_label = tk.Label(
             self.frame, 
             font=("Segoe UI", int(self.base_time_size * self.scale), "bold"), 
-            fg=self.text_color, 
-            bg=self.bg_color,
+            fg=self.text_color,
             cursor="fleur"
         )
         self.time_label.pack()
@@ -81,9 +71,7 @@ class DesktopDigitalClock:
         # Date Label
         self.date_label = tk.Label(
             self.frame, 
-            font=("Segoe UI", max(8, int(self.base_date_size * self.scale))), 
-            fg=self.date_color, 
-            bg=self.bg_color,
+            font=("Segoe UI", max(8, int(self.base_date_size * self.scale))),
             cursor="fleur"
         )
         self.date_label.pack(pady=(0, 2))
@@ -93,11 +81,12 @@ class DesktopDigitalClock:
             self.frame,
             text="⤡",
             font=("Segoe UI", max(8, int(10 * self.scale))),
-            fg="#454D5A",
-            bg=self.bg_color,
             cursor="size_nw_se"
         )
         self.grip.place(relx=1.0, rely=1.0, anchor="se", x=-2, y=-2)
+
+        # Apply Background Style & Transparency
+        self.apply_bg_mode(self.bg_mode, save=False)
 
         # Mouse Drag & Move Bindings
         self._offset_x = 0
@@ -113,7 +102,7 @@ class DesktopDigitalClock:
         self.grip.bind("<B1-Motion>", self.do_resize)
         self.grip.bind("<ButtonRelease-1>", self.end_resize)
         self.grip.bind("<Enter>", lambda e: self.grip.config(fg=self.text_color))
-        self.grip.bind("<Leave>", lambda e: self.grip.config(fg="#454D5A"))
+        self.grip.bind("<Leave>", lambda e: self.update_grip_color())
 
         # Global Keyboard Shortcuts
         self.root.bind("<Control-plus>", lambda e: self.change_scale(0.1))
@@ -124,6 +113,22 @@ class DesktopDigitalClock:
         # Right-click Context Menu
         self.menu = Menu(self.root, tearoff=0)
         
+        # Background Style submenu
+        self.bg_menu = Menu(self.menu, tearoff=0)
+        self.bg_menu.add_command(
+            label="Sleek Widget Card (Clean on All Screens)", 
+            command=lambda: self.apply_bg_mode("card")
+        )
+        self.bg_menu.add_command(
+            label="Pure Transparent (For White / Light Screens)", 
+            command=lambda: self.apply_bg_mode("transparent_light")
+        )
+        self.bg_menu.add_command(
+            label="Pure Transparent (For Dark Screens)", 
+            command=lambda: self.apply_bg_mode("transparent_dark")
+        )
+        self.menu.add_cascade(label="Background Style", menu=self.bg_menu)
+
         # Size submenu
         self.size_menu = Menu(self.menu, tearoff=0)
         self.size_menu.add_command(label="Make Bigger (Ctrl +)", command=lambda: self.change_scale(0.1))
@@ -148,6 +153,59 @@ class DesktopDigitalClock:
         # Initial positioning
         self.apply_position()
         self.update_time()
+
+    # --- Background Styles & Clean Antialiasing ---
+    def apply_bg_mode(self, mode, save=True):
+        self.bg_mode = mode
+        if mode == "card":
+            chroma = "#000001"
+            card_bg = "#151722"
+            self.root.configure(bg=chroma)
+            try:
+                self.root.wm_attributes("-transparentcolor", chroma)
+                self.root.attributes("-alpha", 0.92)
+            except Exception:
+                pass
+            self.frame.configure(bg=card_bg, highlightthickness=1, highlightbackground="#2A2F40")
+            self.time_label.configure(bg=card_bg)
+            self.date_label.configure(bg=card_bg, fg="#AAAAAA")
+            self.grip.configure(bg=card_bg, fg="#4E5569")
+        elif mode == "transparent_light":
+            bg = "#FFFFFF"
+            self.root.configure(bg=bg)
+            try:
+                self.root.wm_attributes("-transparentcolor", bg)
+                self.root.attributes("-alpha", 1.0)
+            except Exception:
+                pass
+            self.frame.configure(bg=bg, highlightthickness=0)
+            self.time_label.configure(bg=bg)
+            self.date_label.configure(bg=bg, fg="#333333")
+            self.grip.configure(bg=bg, fg="#999999")
+        elif mode == "transparent_dark":
+            bg = "#101216"
+            self.root.configure(bg=bg)
+            try:
+                self.root.wm_attributes("-transparentcolor", bg)
+                self.root.attributes("-alpha", 1.0)
+            except Exception:
+                pass
+            self.frame.configure(bg=bg, highlightthickness=0)
+            self.time_label.configure(bg=bg)
+            self.date_label.configure(bg=bg, fg="#AAAAAA")
+            self.grip.configure(bg=bg, fg="#454D5A")
+
+        self.root.update_idletasks()
+        if save:
+            self.save_config()
+
+    def update_grip_color(self):
+        if self.bg_mode == "transparent_light":
+            self.grip.config(fg="#999999")
+        elif self.bg_mode == "card":
+            self.grip.config(fg="#4E5569")
+        else:
+            self.grip.config(fg="#454D5A")
 
     # --- Position Management ---
     def apply_position(self):
@@ -250,6 +308,7 @@ class DesktopDigitalClock:
                     self.text_color = data.get("text_color", "#00FFCC")
                     self.is_24hr = data.get("is_24hr", False)
                     self.always_on_top = data.get("always_on_top", True)
+                    self.bg_mode = data.get("bg_mode", "card")
                     self.saved_x = data.get("x")
                     self.saved_y = data.get("y")
         except Exception:
@@ -263,6 +322,7 @@ class DesktopDigitalClock:
                 "text_color": self.text_color,
                 "is_24hr": self.is_24hr,
                 "always_on_top": self.always_on_top,
+                "bg_mode": self.bg_mode,
                 "x": self.root.winfo_x(),
                 "y": self.root.winfo_y()
             }
@@ -318,7 +378,7 @@ class DesktopDigitalClock:
 
         tips_lbl = tk.Label(
             about_win, 
-            text="💡 Tip: Drag bottom-right corner (⤡) to resize bigger or smaller.", 
+            text="💡 Tip: Drag bottom-right corner (⤡) to resize bigger or smaller.\nRight-click for Background Style and Color options.", 
             font=("Segoe UI", 9, "italic"), 
             fg="#FFE066", 
             bg="#1E1E2E",
