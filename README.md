@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#-downloads"><img src="https://img.shields.io/badge/Release-v1.2.0-brightgreen?style=for-the-badge" alt="Release Version"></a>
+  <a href="#-downloads"><img src="https://img.shields.io/badge/Release-v1.3.0-brightgreen?style=for-the-badge" alt="Release Version"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=for-the-badge&logo=windows" alt="Platform"></a>
   <img src="https://img.shields.io/badge/Python-3.12-yellow?style=for-the-badge&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge" alt="License">
@@ -32,6 +32,11 @@
 - 🛡️ **System Tray & Zero Taskbar Pollution**:
   - সাধারণ টাস্কবারে কোনো বিরক্তি সৃষ্টি না করে ঘড়িটি সরাসরি উইন্ডোজ সিস্টেম ট্রের (System Tray) ভেতর অবস্থান করে।
   - সিস্টেম ট্রে আইকনে রাইট-ক্লিক করে এক ক্লিকেই ঘড়ি হাইড/শো, কালার পরিবর্তন বা বন্ধ করা যায়।
+- 🔒 **Lock Position (পজিশন লক)**: ঘড়িকে নির্দিষ্ট স্থানে স্থির রাখতে ও অনিচ্ছাকৃত ড্র্যাগ বন্ধ করতে রাইট-ক্লিক মেনু বা ট্রে থেকে এক ক্লিকেই লক/আনলক করা যায়।
+- ⏱️ **Show / Hide Seconds**: সেকেন্ডের ডিসপ্লে চালু বা বন্ধ রাখার সম্পূর্ণ নিয়ন্ত্রণ।
+- ✍️ **Multiple Typography / Fonts**: Segoe UI, Consolas (Digital Monospace), Bahnschrift এবং Arial ফন্ট স্টাইল পছন্দের সুবিধা।
+- 🚀 **Start with Windows Toggle**: সিস্টেম বুটে অটো-স্টার্ট সক্রিয় বা নিষ্ক্রিয় করার ইন-অ্যাপ কন্ট্রোল।
+- ⏰ **Double-Click Shortcut**: ঘড়ির ওপর ডাবল-ক্লিক করলেই সরাসরি উইন্ডোজ ক্লক ও অ্যালার্ম অ্যাপ ওপেন হয়ে যায়।
 - 🔄 **Smart Hover-to-Resize (স্মার্ট রিসাইজ হ্যান্ডেল)**:
   - মাউস কার্সর ঘড়ির ওপরে নিলেই নিচে ডান কোণায় হালকাভাবে রিসাইজ হ্যান্ডেল (`⤡`) ফুটে ওঠে।
   - মাউস চেপে ধরে ড্র্যাগ করে ইচ্ছামতো বড় বা ছোট করা যায়। মাউস সরিয়ে নিলে হ্যান্ডেলটি স্বয়ংক্রিয়ভাবে অদৃশ্য হয়ে যায় যাতে কোনো লেখা না ঢাকে।
@@ -56,7 +61,7 @@
 
 | ফাইল | ধরন | ডাউনলোড |
 | :--- | :--- | :--- |
-| **`Setup_DesktopDigitalClock_AsR.exe`** | 📦 **ফুল উইন্ডোজ ইনস্টলার** | [Direct Download (v1.2.0)](https://github.com/mdhamzadul/DesktopDigitalClock/releases/latest/download/Setup_DesktopDigitalClock_AsR.exe) |
+| **`Setup_DesktopDigitalClock_AsR.exe`** | 📦 **ফুল উইন্ডোজ ইনস্টলার** | [Direct Download (v1.3.0)](https://github.com/mdhamzadul/DesktopDigitalClock/releases/latest/download/Setup_DesktopDigitalClock_AsR.exe) |
 
 👉 **অথবা [Releases](https://github.com/mdhamzadul/DesktopDigitalClock/releases) পেজ থেকেও সরাসরি নামিয়ে নিতে পারবেন।**
 
@@ -66,7 +71,9 @@
 
 | অ্যাকশন | কীভাবে করবেন? |
 | :--- | :--- |
-| **স্থান পরিবর্তন (Move)** | ঘড়ির ওপর মাউসের বাম বাটন চেপে ধরে স্ক্রিনের যেকোনো স্থানে ড্র্যাগ করুন। |
+| **স্থান পরিবর্তন (Move)** | ঘড়ির ওপর মাউসের বাম বাটন চেপে ধরে স্ক্রিনের যেকোনো স্থানে ড্র্যাগ করুন (লক থাকলে ড্র্যাগ হবে না)। |
+| **লক/আনলক (Lock Position)** | রাইট-ক্লিক মেনু বা ট্রে থেকে **Lock Position** এ ক্লিক করুন। |
+| **ডাবল-ক্লিক (Quick Alarm/Clock)** | ঘড়ির ওপর ডাবল-ক্লিক করলে উইন্ডোজের অফিসিয়াল Clock & Alarm অ্যাপ ওপেন হবে। |
 | **সাইজ বড়/ছোট করা (Resize)** | ঘড়ির ওপর মাউস আনলে কোণায় `⤡` আসবে, সেটি চেপে ধরে ড্র্যাগ করুন। অথবা `Ctrl +` ও `Ctrl -` চাপুন। |
 | **ডিফল্ট সাইজ (Reset Size)** | `Ctrl + 0` চাপুন অথবা রাইট-ক্লিক মেনু থেকে নির্বাচন করুন। |
 | **মেনু ওপেন করা (Menu)** | ঘড়ির ওপর মাউসের **ডান বাটন (Right Click)** ক্লিক করুন। |
@@ -86,14 +93,19 @@ git clone https://github.com/mdhamzadul/DesktopDigitalClock.git
 # Enter project directory
 cd DesktopDigitalClock
 
-# Install requirements
-pip install -r requirements.txt  # (or pip install pystray pillow)
+# Install dependencies
+pip install pystray pillow
 
 # Run the clock directly
 python desktop_clock.py
 ```
 
 ### Build Executables (EXE ফাইল তৈরি করতে)
+সহজে বিল্ড করতে `build.bat` ফাইলে ডাবল-ক্লিক করুন, অথবা টার্মিনালে রান করুন:
+```bash
+build.bat
+```
+ম্যানুয়ালি বিল্ড করতে চাইলে:
 ```bash
 # Build Portable Clock
 pyinstaller --clean --onefile --noconsole --icon clock.ico --add-data "clock.ico;." --name DesktopDigitalClock_AsR desktop_clock.py
@@ -111,6 +123,7 @@ DesktopDigitalClock/
 ├── desktop_clock.py                 # মূল ডিজিটাল ঘড়ির পাইথন সোর্স কোড
 ├── installer.py                     # ইনস্টলেশন উইজার্ডের পাইথন সোর্স কোড
 ├── clock.ico                        # অ্যাপের অফিসিয়াল আইকন
+├── build.bat                        # ১-ক্লিক অটো বিল্ড স্ক্রিপ্ট (PyInstaller)
 ├── DesktopDigitalClock_AsR.exe      # পোর্টেবল এক্সিকিউটেবল
 ├── Setup_DesktopDigitalClock_AsR.exe  # ফুল ইনস্টলার এক্সিকিউটেবল
 ├── README.md                        # প্রজেক্ট ডকুমেন্টেশন
